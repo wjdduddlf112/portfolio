@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist.zip
+*.tsbuildinfo
+.env*
+!.env.example
+qa/screenshots/
+.npm-cache/
+.qa-cache/
+
+# Local review records; do not publish with the source repository.
+CONTENT_REVIEW.md
+QA_REPORT.md
+docs/CONTENT_NOTES.md
