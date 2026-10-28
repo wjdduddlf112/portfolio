@@ -4,6 +4,7 @@ import { readFile, mkdir, readdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
+import { runInNewContext } from 'node:vm';
 
 const root = resolve(import.meta.dirname, '..');
 const cache = join(root, '.qa-cache');
@@ -16,14 +17,16 @@ await build({
       import { MemoryRouter } from 'react-router-dom';
       import App from './src/App.tsx';
       import { profile } from './src/data/profile.ts';
+      export { assetUrl } from './src/utils/assetUrl.ts';
       import { projects, projectFacts, extendedProjects, campStages, allProjectIds, policyCell, policyJourney, displayComparison } from './src/data/projects.ts';
       export { profile, projects, projectFacts, extendedProjects, campStages, allProjectIds, policyCell, policyJourney, displayComparison };
-      export function render(path) { return renderToStaticMarkup(React.createElement(MemoryRouter, { initialEntries: [path] }, React.createElement(App))); }`,
+      export function render(path, basename) { return renderToStaticMarkup(React.createElement(MemoryRouter, { initialEntries: [path], basename }, React.createElement(App))); }`,
     resolveDir: root, loader: 'tsx',
   },
   outfile: runtimePath, platform: 'node', format: 'esm', packages: 'external', bundle: true,
+  define: { 'import.meta.env.BASE_URL': JSON.stringify('/portfolio/') },
 });
-const { render, profile, projects, projectFacts, extendedProjects, campStages, allProjectIds, policyCell, policyJourney, displayComparison } = await import(pathToFileURL(runtimePath).href);
+const { render, assetUrl, profile, projects, projectFacts, extendedProjects, campStages, allProjectIds, policyCell, policyJourney, displayComparison } = await import(pathToFileURL(runtimePath).href);
 
 test('홈: 대표 사례 3개, 기타 작업, 경력 및 확인된 연락처 렌더링', () => {
   const html = render('/');
@@ -180,4 +183,69 @@ test('빌드 배포 구조: SPA fallback, 정적 자산, 한국어 SEO', async (
   const assets = await readdir(join(dist, 'assets'));
   assert.ok(assets.some(file => file.endsWith('.js')));
   assert.ok(assets.some(file => file.endsWith('.woff2')), '폰트는 외부 CDN이 아닌 로컬 자산으로 배포');
+});
+
+test('서버 없는 HTML: JS·CSS·폰트 내장, 외부 코드 요청 없이 파일로 열 수 있는 구조', async () => {
+  const standalone = await readFile(join(root, 'portfolio.html'), 'utf8');
+  assert.equal(standalone, await readFile(join(root, 'dist', 'portfolio.html'), 'utf8'));
+  assert.ok(standalone.includes('window.__PORTFOLIO_STANDALONE__=true'));
+  assert.ok(standalone.includes('data:font/woff2;base64,'));
+  assert.ok(standalone.includes('data:image/svg+xml;base64,'));
+  assert.ok(!/<script\b[^>]*\bsrc=/.test(standalone));
+  assert.ok(!/<link\b[^>]*rel="stylesheet"/.test(standalone));
+  assert.ok(!standalone.includes("location.replace(page.href)"), '단일 HTML이 자기 자신으로 리다이렉트되지 않음');
+  const index = await readFile(join(root, 'dist', 'index.html'), 'utf8');
+  assert.ok(index.includes("location.protocol === 'file:'"));
+  assert.ok(index.includes('./portfolio.html'));
+});
+
+test('상세 목차·본문 건너뛰기·상단 이동은 현재 경로를 유지하는 링크', () => {
+  const html = render('/projects/humour');
+  for (const hash of ['overview', 'process', 'outcomes', 'main', 'top']) assert.ok(html.includes(`href="/projects/humour#${hash}"`), hash);
+  assert.ok(!html.includes('href="#'));
+  const extended = render('/projects/ai-camp');
+  assert.ok(extended.includes('href="/projects/ai-camp#growth"'));
+});
+
+test('Pages 하위 경로: 링크·공개 이미지·이력서 모두 배포 base 유지', () => {
+  const html = render('/portfolio/projects/humour', '/portfolio/');
+  assert.ok(html.includes('<h1>HumouR</h1>'));
+  assert.ok(html.includes('href="/portfolio/projects/humour#process"'));
+  assert.equal(assetUrl('/images/example.webp'), '/portfolio/images/example.webp');
+  assert.equal(assetUrl('/resume.pdf'), '/portfolio/resume.pdf');
+  assert.equal(assetUrl('https://example.com/image.webp'), 'https://example.com/image.webp');
+});
+
+test('Pages 빌드: 번들·폰트·favicon의 하위 경로 및 실제 파일 존재', async () => {
+  const html = await readFile(join(root, 'dist/index.html'), 'utf8');
+  const refs = [...html.matchAll(/(?:src|href)="(\/portfolio\/[^\"]+)"/g)].map(match => match[1]);
+  assert.ok(refs.some(path => path.endsWith('.js')));
+  assert.ok(refs.some(path => path.endsWith('.css')));
+  assert.ok(refs.includes('/portfolio/favicon.svg'));
+  for (const ref of refs) await readFile(join(root, 'dist', ref.slice('/portfolio/'.length)));
+  const css = await readFile(join(root, 'dist', refs.find(path => path.endsWith('.css')).slice('/portfolio/'.length)), 'utf8');
+  assert.ok(css.includes('/portfolio/assets/'));
+  assert.ok(!css.includes('url(/assets/'));
+  await readFile(join(root, 'dist/.nojekyll'));
+});
+
+test('Pages 404 복구: 상세 URL의 검색·앵커 보존, 외부 경로 복구 거부', async () => {
+  const fallback = await readFile(join(root, 'dist/404.html'), 'utf8');
+  const index = await readFile(join(root, 'dist/index.html'), 'utf8');
+  const fallbackScript = fallback.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const bootstrap = index.match(/<script id="portfolio-bootstrap">([\s\S]*?)<\/script>/)[1];
+  for (const route of ['/projects/roa-marketing?from=채용&sort=a%26b#process', '/projects/ai-camp#growth', '/projects/missing']) {
+    const original = new URL('https://wjdduddlf112.github.io/portfolio' + route);
+    let redirect;
+    runInNewContext(fallbackScript, { location: { pathname: original.pathname, search: original.search, hash: original.hash, replace: value => { redirect = value; } }, encodeURIComponent });
+    const landing = new URL(redirect, original.origin);
+    let restored;
+    runInNewContext(bootstrap, { location: landing, URL, URLSearchParams, history: { replaceState: (_state, _unused, url) => { restored = url; } } });
+    assert.equal(restored, original.pathname + original.search + original.hash);
+  }
+  for (const route of ['//evil.example/path', '/../../outside', '/\\evil.example/path']) {
+    let changed = false;
+    runInNewContext(bootstrap, { location: new URL('https://wjdduddlf112.github.io/portfolio/?__portfolio_path=' + encodeURIComponent(route)), URL, URLSearchParams, history: { replaceState: () => { changed = true; } } });
+    assert.equal(changed, false);
+  }
 });

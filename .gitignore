@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist.zip
+portfolio.html
 *.tsbuildinfo
 .env*
 !.env.example

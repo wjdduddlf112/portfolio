@@ -9,13 +9,17 @@ const script = fileURLToPath(import.meta.url);
 const root = resolve(dirname(script), '..', 'dist');
 const host = '127.0.0.1';
 const port = 4173;
-const url = `http://${host}:${port}/`;
+const origin = `http://${host}:${port}`;
+const index = await readFile(resolve(root, 'index.html'), 'utf8');
+const entry = index.match(/<script\b[^>]*\bsrc="([^\"]+)"/);
+const base = entry ? entry[1].slice(0, entry[1].lastIndexOf('/assets/') + 1) : '/';
+const url = origin + base;
 const appId = 'youngil-personal-portfolio-preview';
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif' };
 
 async function isRunning() {
   try {
-    const response = await fetch(`${url}__portfolio_health`, { signal: AbortSignal.timeout(1000) });
+    const response = await fetch(`${origin}/__portfolio_health`, { signal: AbortSignal.timeout(1000) });
     return response.ok && (await response.json()).app === appId;
   } catch { return false; }
 }
@@ -30,9 +34,15 @@ if (process.argv.includes('--serve')) {
         response.end(JSON.stringify({ app: appId }));
         return;
       }
-      let file = resolve(root, `.${pathname}`);
+      if (base !== '/' && !pathname.startsWith(base)) {
+        const requested = new URL(request.url, origin);
+        response.writeHead(302, { Location: base.replace(/\/$/, '') + requested.pathname + requested.search });
+        response.end(); return;
+      }
+      const relative = '/' + pathname.slice(base.length);
+      let file = resolve(root, `.${relative}`);
       if (file !== root && !file.startsWith(root + sep)) { response.writeHead(403); response.end(); return; }
-      if (pathname === '/' || !extname(pathname)) file = resolve(root, 'index.html');
+      if (relative === '/' || !extname(relative)) file = resolve(root, 'index.html');
       if (!(await stat(file)).isFile()) throw new Error('Not a file');
       const data = await readFile(file);
       response.writeHead(200, { 'Content-Type': mime[extname(file)] ?? 'application/octet-stream', 'Content-Length': data.length, 'Cache-Control': 'no-store' });

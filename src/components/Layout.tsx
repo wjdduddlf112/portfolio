@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { profile } from '../data/profile';
 import { Arrow } from './Icon';
@@ -24,14 +25,23 @@ export function Header() {
 }
 
 export function Footer() {
-  return <footer className="site-footer container"><Link to="/" className="footer-signature">{profile.englishName}<span>기획에서 실행까지.</span></Link><span>© 2026 {profile.name}</span><a href="#top" className="back-top">Back to top <span aria-hidden="true">↑</span></a></footer>;
+  return <footer className="site-footer container"><Link to="/" className="footer-signature">{profile.englishName}<span>기획에서 실행까지.</span></Link><span>© 2026 {profile.name}</span><SectionLink id="top" className="back-top">Back to top <span aria-hidden="true">↑</span></SectionLink></footer>;
+}
+
+export function SectionLink({ id, ...props }: Omit<ComponentProps<typeof Link>, 'to'> & { id: string }) {
+  const { pathname } = useLocation();
+  return <Link {...props} to={{ pathname, hash: `#${id}` }} />;
 }
 
 export function ScrollManager() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+      if (hash) {
+        const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+        target?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+        if (hash === '#main') target?.focus({ preventScroll: true });
+      }
       else window.scrollTo({ top: 0, behavior: 'instant' });
     });
     return () => cancelAnimationFrame(frame);

@@ -5,6 +5,8 @@ import { FlowFigure } from '../components/ProjectEvidence';
 import { CampTimeline, DisplayComparison, DenoisingComparison, TechnicalSources } from '../components/LearningVisuals';
 import { Contact } from '../components/Contact';
 import { Arrow } from '../components/Icon';
+import { SectionLink } from '../components/Layout';
+import { assetUrl } from '../utils/assetUrl';
 
 function ProjectStory({ project }: { project: ExtendedProject }) {
   if (project.kind === 'camp') return <section id="growth"><span className="eyebrow">02 / LEARNING JOURNEY</span><h2>정보를 분석하는 일에서, 제품을 설계하는 일로</h2><CampTimeline /></section>;
@@ -41,10 +43,10 @@ export default function ExtendedProjectDetail({ project }: { project: ExtendedPr
         <div className="detail-meta"><div><span>PERIOD</span><p>{project.period}</p></div><div><span>CONTRIBUTION</span><p>{project.role}</p></div><div><span>STATUS</span><p>{project.status}</p></div></div>
       </div>
       <div className="container detail-body">
-        <aside className="detail-toc" aria-label="사례 목차"><span className="eyebrow">IN THIS CASE</span>{project.sections.map(item => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}</aside>
+        <aside className="detail-toc" aria-label="사례 목차"><span className="eyebrow">IN THIS CASE</span>{project.sections.map(item => <SectionLink id={item.id} key={item.id}>{item.label}</SectionLink>)}</aside>
         <div className="detail-content">
           <section id="overview"><span className="eyebrow">01 / CONTEXT & PURPOSE</span><h2>이 경험에서 다룬 문제</h2><p className="lead-paragraph">{project.overview}</p></section>
-          {project.assets && project.assets.length > 0 && <div className="provided-assets">{project.assets.map(asset => <figure className="evidence-figure" key={asset.src}><img src={asset.src} alt={asset.alt} width={asset.width} height={asset.height} loading="lazy" /><figcaption>{asset.kind === 'actual' ? '제공된 실제 자료' : '설명용 자료'} · {asset.caption}</figcaption></figure>)}</div>}
+          {project.assets && project.assets.length > 0 && <div className="provided-assets">{project.assets.map(asset => <figure className="evidence-figure" key={asset.src}><img src={assetUrl(asset.src)} alt={asset.alt} width={asset.width} height={asset.height} loading="lazy" /><figcaption>{asset.kind === 'actual' ? '제공된 실제 자료' : '설명용 자료'} · {asset.caption}</figcaption></figure>)}</div>}
           <ProjectStory project={project} />
           <section id="contribution"><span className="eyebrow">CONTRIBUTION & OUTPUTS</span><h2>기여와 산출 경험의 범위</h2><p>{project.contribution}</p><ul className="role-list">{project.outputs.map(output => <li key={output}><Arrow />{output}</li>)}</ul><div className="evidence-note"><span>정보의 범위</span><p>{project.evidence}</p></div></section>
           <RelatedPractice project={project} />

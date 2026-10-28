@@ -2,6 +2,23 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <script id="portfolio-bootstrap">
+      if (location.protocol === 'file:') {
+        const page = new URL('./portfolio.html', location.href);
+        page.hash = location.hash.startsWith('#/') ? location.hash : '#/' + location.hash;
+        location.replace(page.href);
+      } else {
+        // GitHub Pages 404.html sends deep links here before the router starts.
+        const original = new URLSearchParams(location.search).get('__portfolio_path');
+        if (original && original.startsWith('/') && !original.startsWith('//') && !original.includes('\\')) {
+          const base = '%BASE_URL%';
+          const target = new URL(base.replace(/\/$/, '') + original, location.origin);
+          if (target.origin === location.origin && target.pathname.startsWith(base)) {
+            history.replaceState(null, '', target.pathname + target.search + target.hash);
+          }
+        }
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7f7f2" />
     <meta name="description" content="정영일의 포트폴리오. 데이터와 기술을 이해하고, 복잡한 문제를 실행 가능한 서비스와 경험으로 연결합니다." />
@@ -10,7 +27,7 @@
     <meta property="og:title" content="정영일 — Product, People & Possibility" />
     <meta property="og:description" content="서비스 기획, AI·AX, 비즈니스 운영. 문제를 정의하고 실행으로 연결한 프로젝트를 소개합니다." />
     <meta name="twitter:card" content="summary" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <title>정영일 — Product, People & Possibility</title>
   </head>
   <body>

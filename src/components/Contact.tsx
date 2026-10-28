@@ -1,4 +1,5 @@
 import { profile } from '../data/profile';
+import { assetUrl } from '../utils/assetUrl';
 import { Arrow, Asterisk } from './Icon';
 
 export function Contact() {
@@ -10,7 +11,7 @@ export function Contact() {
       {profile.secondaryEmail && <a className="contact-secondary" href={`mailto:${profile.secondaryEmail}`}>{profile.secondaryEmail}<Arrow diagonal /></a>}
       {profile.github && <a className="contact-line" href={profile.github} target="_blank" rel="noreferrer">GitHub<span>프로젝트와 코드 <Arrow diagonal /></span></a>}
       {profile.linkedIn && <a className="contact-line" href={profile.linkedIn} target="_blank" rel="noreferrer">LinkedIn<Arrow diagonal /></a>}
-      {profile.resumeUrl && <a className="contact-line" href={profile.resumeUrl} download>이력서 PDF 다운로드<Arrow /></a>}
+      {profile.resumeUrl && <a className="contact-line" href={assetUrl(profile.resumeUrl)} download>이력서 PDF 다운로드<Arrow /></a>}
       {!hasContact && <p className="contact-pending">공개 연락처를 준비하고 있습니다.<br />확인된 연락처를 이곳에 업데이트할 예정입니다.</p>}
     </div>
   </div></section>;

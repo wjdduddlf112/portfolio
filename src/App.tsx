@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
-import { Footer, Header, ScrollManager } from './components/Layout';
+import { Footer, Header, ScrollManager, SectionLink } from './components/Layout';
 import Home from './pages/Home';
 import ProjectDetail, { NotFound } from './pages/ProjectDetail';
 import { projects, extendedProjects } from './data/projects';
@@ -21,5 +21,5 @@ function PageMetadata() {
 }
 
 export default function App() {
-  return <><a className="skip-link" href="#main">본문으로 건너뛰기</a><ScrollManager /><PageMetadata /><div id="top" /><Header /><main id="main" tabIndex={-1}><Routes><Route path="/" element={<Home />} /><Route path="/projects/:slug" element={<ProjectDetail />} /><Route path="*" element={<NotFound />} /></Routes></main><Footer /></>;
+  return <><SectionLink id="main" className="skip-link">본문으로 건너뛰기</SectionLink><ScrollManager /><PageMetadata /><div id="top" /><Header /><main id="main" tabIndex={-1}><Routes><Route path="/" element={<Home />} /><Route path="/projects/:slug" element={<ProjectDetail />} /><Route path="*" element={<NotFound />} /></Routes></main><Footer /></>;
 }

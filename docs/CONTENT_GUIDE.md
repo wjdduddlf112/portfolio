@@ -40,4 +40,6 @@ npm test
 npm run package
 ```
 
-배포 파일은 `dist/`, 전달용 압축 파일은 `dist.zip`에 생성됩니다. 둘 다 Git에서 제외됩니다. Netlify Drop에 `dist`를 직접 업로드하며 상세 URL 새로고침을 위한 `_redirects`를 유지합니다. 저장소 업로드만으로 사이트가 배포되지는 않습니다.
+배포 파일은 `dist/`, 전달용 압축 파일은 `dist.zip`, 서버 없는 열람 파일은 `portfolio.html`에 생성됩니다. 모두 Git에서 제외됩니다. `main` 푸시 시 GitHub Actions가 검사·빌드·테스트 후 GitHub Pages의 `/portfolio/`에 배포합니다. 상세 URL은 생성된 `404.html`과 `index.html`의 복구 스크립트로 유지합니다. Netlify Drop 루트 배포도 가능하며 `PORTFOLIO_BASE=/` 빌드와 `_redirects`를 사용합니다. 실행 절차는 README를 참고하세요.
+
+이미지와 이력서의 로컬 경로는 `/images/파일명.webp`, `/resume.pdf`처럼 입력합니다. 컴포넌트의 `assetUrl()`이 배포 base를 붙이므로 데이터에 `/portfolio/`를 직접 중복 입력하지 않습니다. 디자인·경력 데이터는 배포 설정과 분리해 기존 파일에서 관리합니다.

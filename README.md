@@ -4,11 +4,11 @@ PM, AI·AX 서비스 기획, 사업기획·운영 분야를 위한 한국어 정
 
 ## 완성된 사이트 바로 열기 (Windows)
 
-**`index.html`을 직접 더블클릭하면 하얀 화면이 나올 수 있습니다.** 이 사이트의 JavaScript 모듈과 경로 처리는 HTTP 주소에서 동작합니다.
+빌드 후 프로젝트 폴더의 **`portfolio.html`을 더블클릭**하면 서버 없이 열립니다. JS·CSS·폰트가 내장되어 있고 상세 이동은 해시 경로를 사용합니다. `dist/index.html`을 파일로 열어도 같은 폴더의 `portfolio.html`로 이동합니다. 소스의 `index.html`은 개발 진입점이며, 전달할 파일은 빌드로 생성한 `portfolio.html`입니다.
 
-프로젝트 폴더의 **`open-portfolio.cmd`를 더블클릭**하세요. `dist`를 제공하는 로컬 전용 서버가 백그라운드에서 실행되고 기본 브라우저로 `http://127.0.0.1:4173/`이 열립니다. Node.js가 필요하며 추가 패키지 설치는 필요하지 않습니다. 이 주소는 내 컴퓨터에서만 열리며 외부에 공개되지 않습니다. 재실행하면 기존 서버를 재사용합니다. 컴퓨터를 재시작한 후에는 실행 파일을 다시 더블클릭하세요.
+HTTP 미리보기는 **`open-portfolio.cmd`를 더블클릭**하세요. `dist`를 제공하는 로컬 전용 서버가 백그라운드에서 실행되고 `http://127.0.0.1:4173/portfolio/`이 열립니다. Node.js가 필요하며 추가 패키지 설치는 필요하지 않습니다. 이 주소는 내 컴퓨터에서만 열립니다. 재실행하면 기존 서버를 재사용하며, 컴퓨터를 재시작한 후에는 실행 파일을 다시 실행하세요.
 
-브라우저가 자동으로 열리지 않으면 위 주소를 직접 입력하세요. 인터넷에 공유할 URL은 Netlify Drop에 `dist`를 업로드한 뒤 발급받아야 합니다.
+공유용 사이트: **[https://wjdduddlf112.github.io/portfolio/](https://wjdduddlf112.github.io/portfolio/)**
 
 ## 소스 개발 실행
 
@@ -19,7 +19,7 @@ npm install
 npm run dev
 ```
 
-터미널에 표시되는 로컬 주소를 엽니다. 기본 주소는 `http://127.0.0.1:5173`입니다.
+터미널에 표시되는 로컬 주소를 엽니다. 기본 주소는 `http://127.0.0.1:5173/portfolio/`입니다.
 
 ## 빌드와 확인
 
@@ -30,16 +30,28 @@ npm run preview
 npm run package
 ```
 
-- `npm run build`: TypeScript 검사 후 `dist/`에 정적 배포 파일 생성
-- `npm test`: 홈·상세 3개·404·연락처 누락·콘텐츠 표현·빌드 구조를 검사
+- `npm run build`: TypeScript 검사 후 `dist/`·단일 `portfolio.html`·Pages용 `404.html` 생성
+- `npm test`: 홈·상세 7개·404·콘텐츠 표현·하위 경로·404 URL 복구·단일 HTML 구조를 검사
 - `npm run preview`: 빌드한 사이트를 로컬에서 확인, 기본 포트 4173
 - `npm run package`: `dist` 내용만 담은 `dist.zip` 생성. ZIP 최상위에 `index.html`이 위치합니다.
 
-빌드 후 내용을 수정했다면 다시 빌드하고 ZIP도 다시 생성하세요. 프로젝트는 서버를 요구하지 않지만 `dist/index.html`을 파일로 직접 열지 말고 HTTP 미리보기나 Netlify를 사용하세요.
+빌드 후 내용을 수정했다면 다시 빌드하고 ZIP도 다시 생성하세요. 생성물 `dist/`, `dist.zip`, `portfolio.html`은 Git에서 제외하며 소스만 관리합니다.
+
+## GitHub Pages 자동 배포
+
+`.github/workflows/deploy-pages.yml`이 `main` 푸시 또는 수동 실행 시 `npm ci` → TypeScript 검사 → 프로덕션 빌드 → 테스트 → Pages 배포를 수행합니다. 저장소 **Settings → Pages → Build and deployment → Source**는 **GitHub Actions**로 설정합니다.
+
+- Vite 기본 `base`: `/portfolio/`
+- BrowserRouter `basename`: `import.meta.env.BASE_URL`
+- favicon·폰트·JS·CSS 및 공개 자료 경로도 같은 base 사용
+- 상세 URL 직접 접속·새로고침: `404.html`이 원래 URL을 인코딩해 홈으로 이동하고, React 실행 전에 경로·검색 조건·앵커를 복원
+- 알 수 없는 상세 경로는 앱의 기존 404 화면 표시
+
+Pages는 서버 rewrite를 지원하지 않으므로 상세 URL 첫 요청은 HTTP 404를 거쳐 홈의 HTTP 200으로 복구됩니다. `_redirects`는 Netlify용이며 Pages에서는 사용하지 않습니다. 배포 상태는 저장소 Actions의 **Deploy portfolio to GitHub Pages** 실행에서 확인하세요.
 
 ## Netlify Drop으로 직접 배포
 
-1. `npm run build`를 실행합니다. 제공된 `dist`를 수정하지 않았다면 이 단계는 생략 가능합니다.
+1. Netlify 루트 배포는 PowerShell에서 `$env:PORTFOLIO_BASE='/'; npm run build; Remove-Item Env:PORTFOLIO_BASE`로 별도 빌드합니다. 기본 Pages 빌드를 그대로 루트에 업로드하지 마세요.
 2. [Netlify Drop](https://app.netlify.com/drop)을 브라우저에서 엽니다.
 3. **`personal-portfolio/dist` 폴더 자체**를 업로드합니다. 소스 폴더나 `node_modules`는 업로드하지 않습니다.
 4. Netlify에서 발급한 주소로 홈을 확인합니다.
@@ -48,7 +60,7 @@ npm run package
 
 `public/_redirects`의 `/* /index.html 200` 설정이 빌드 시 `dist/_redirects`로 복사됩니다. 따라서 Netlify는 상세 경로 요청에도 SPA를 반환합니다. 앱은 알 수 없는 경로에 별도의 404 화면을 표시합니다. `dist.zip`은 보관·전달용이며, Drop에서 ZIP이 처리되지 않으면 압축을 풀어 그 내용이 들어 있는 폴더를 업로드하세요.
 
-소스는 [wjdduddlf112/portfolio](https://github.com/wjdduddlf112/portfolio)에서 관리합니다. GitHub 업로드는 소스 버전 관리이며, 사이트 배포는 Netlify Drop에서 별도로 진행합니다. 자동 배포와 외부 서비스 등록은 설정하지 않았습니다.
+소스는 [wjdduddlf112/portfolio](https://github.com/wjdduddlf112/portfolio)에서 관리하며 기본 배포는 GitHub Pages 자동 배포입니다. Netlify Drop 수동 배포도 유지합니다.
 
 ## 콘텐츠 수정
 
